@@ -4,6 +4,8 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 import { getCurrentProfile, hasAnyProfiles } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 const features = [
   {
     icon: Brain,
