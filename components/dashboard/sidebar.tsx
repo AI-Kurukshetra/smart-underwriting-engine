@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { AppProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher";
 
 type Props = {
   currentPath: string;
@@ -114,8 +114,11 @@ export function DashboardSidebar({ currentPath, profile }: Props) {
 
       <div className="border-t border-line-subtle px-4 py-4 space-y-3">
         <div className="rounded-lg border border-line-subtle bg-surface-dim/50 px-3 py-2">
-          <p className="sidebar-section-label mb-2">Theme</p>
-          <ThemeToggle />
+          <p className="sidebar-section-label mb-2">Workspace</p>
+          <WorkspaceSwitcher
+            workspaces={profile.workspaces ?? [{ tenantId: profile.tenantId, tenantName: profile.tenantName, role: profile.role }]}
+            currentTenantId={profile.tenantId}
+          />
         </div>
         <div className="sidebar-profile-card flex items-center gap-3 p-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent ring-2 ring-accent/20">

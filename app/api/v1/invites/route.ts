@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentProfile } from "@/lib/auth/session";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createInvite, listInvites } from "@/lib/repositories/invites";
+import { sendInviteEmail } from "@/lib/email";
 
 const createSchema = z.object({
   email: z.string().email(),
@@ -50,6 +52,18 @@ export async function POST(request: Request) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const inviteLink = `${baseUrl}/setup?invite=${result.token}`;
 
+  const admin = createSupabaseAdminClient();
+  const tenant = admin ? await admin.from("tenants").select("name").eq("id", profile.tenantId).maybeSingle() : null;
+  const workspaceName = tenant?.data?.name ?? "your workspace";
+
+  const emailResult = await sendInviteEmail({
+    to: parsed.data.email,
+    inviteLink,
+    workspaceName,
+    role: parsed.data.role,
+    expiresInDays: 7,
+  });
+
   return NextResponse.json(
     {
       data: {
@@ -58,6 +72,7 @@ export async function POST(request: Request) {
         email: parsed.data.email,
         role: parsed.data.role,
         expiresAt: result.expiresAt,
+        emailSent: emailResult.sent,
       },
     },
     { status: 201 }

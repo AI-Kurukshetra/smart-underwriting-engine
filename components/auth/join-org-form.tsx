@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 type Props = {
   token: string;
+  tenantId: string;
   tenantName: string;
   role: string;
 };
 
-export function JoinOrgForm({ token, tenantName, role }: Props) {
-  const router = useRouter();
+export function JoinOrgForm({ token, tenantId, tenantName, role }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -29,8 +28,8 @@ export function JoinOrgForm({ token, tenantName, role }: Props) {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      document.cookie = `aegis-tenant-id=${tenantId}; path=/; max-age=31536000; samesite=lax`;
+      window.location.href = "/";
     });
   }
 

@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Shield, Brain, BarChart3, FileSearch, Workflow, Lock } from "lucide-react";
 import { SignInForm } from "@/components/auth/sign-in-form";
+import { SignOutAndRedirect } from "@/components/auth/sign-out-and-redirect";
 import { getCurrentProfile, hasAnyProfiles } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -45,17 +47,13 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const profile = await getCurrentProfile();
-  if (profile) {
-    redirect("/");
-  }
-
   const initialized = await hasAnyProfiles();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
 
-  if (user) {
+  if (user && !profile) {
     const { next: nextPath } = await searchParams;
     const setupPath = nextPath?.startsWith("/setup") ? nextPath : "/setup";
     redirect(setupPath);
@@ -141,7 +139,35 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
 
           <div className="mt-8">
-            <SignInForm canBootstrap={!initialized} />
+            {profile ? (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-line bg-surface-dim p-4">
+                  <p className="text-sm font-medium text-foreground">You&apos;re signed in as {profile.email}</p>
+                  <p className="mt-1 text-xs text-muted">Go to the dashboard or use a different account.</p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Link
+                    href="/"
+                    className="flex-1 rounded-lg bg-accent px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-accent-strong"
+                  >
+                    Go to dashboard
+                  </Link>
+                  <SignOutAndRedirect
+                    nextPath="/login"
+                    className="flex-1 inline-flex justify-center items-center gap-2 rounded-lg border border-line px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-surface-dim"
+                  >
+                    Use different account
+                  </SignOutAndRedirect>
+                </div>
+              </div>
+            ) : (
+              <>
+                <SignInForm canBootstrap={!initialized} />
+                <p className="mt-3 text-xs text-muted">
+                  You&apos;ll be able to choose which Google account to use.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="mt-8 space-y-3">

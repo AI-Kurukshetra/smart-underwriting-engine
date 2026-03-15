@@ -46,15 +46,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && pathname === "/login") {
-    const { data: profile } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
-    if (profile) {
-      const dashboardUrl = request.nextUrl.clone();
-      dashboardUrl.pathname = "/";
-      return NextResponse.redirect(dashboardUrl);
-    }
-  }
-
   return response;
 }
 
