@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPendingInviteForUser } from "@/lib/repositories/invites";
 
 const schema = z.object({
   fullName: z.string().min(2),
@@ -36,10 +37,45 @@ export async function POST(request: Request) {
 
   const existingProfile = await admin.from("profiles").select("id").eq("id", user.id).maybeSingle();
   if (existingProfile.data) {
-    return NextResponse.json({ error: { message: "You already have an organization. Sign out and use a different account to create a new one." } }, { status: 409 });
+    return NextResponse.json({ error: { message: "You already have a workspace. Sign out and use a different account to create a new one." } }, { status: 409 });
   }
 
   const baseSlug = slugify(parsed.data.organizationName) || "aegis-org";
+  const existingTenantBySlug = await admin.from("tenants").select("id, name").eq("slug", baseSlug).maybeSingle();
+
+  if (existingTenantBySlug.data) {
+    const tenantId = existingTenantBySlug.data.id;
+    const tenantName = existingTenantBySlug.data.name ?? parsed.data.organizationName;
+    const userEmail = (user.email || "").toLowerCase().trim();
+
+    const pendingInvite = await getPendingInviteForUser(tenantId, userEmail);
+    if (pendingInvite) {
+      return NextResponse.json({
+        data: {
+          hasInvite: true,
+          inviteToken: pendingInvite.token,
+          workspaceName: tenantName,
+        },
+      });
+    }
+
+    const existingRequest = await admin.from("workspace_access_requests").select("id").eq("tenant_id", tenantId).eq("email", userEmail).eq("status", "pending").maybeSingle();
+
+    if (!existingRequest.error && !existingRequest.data) {
+      await admin.from("workspace_access_requests").insert({
+        tenant_id: tenantId,
+        email: userEmail,
+        full_name: parsed.data.fullName,
+        status: "pending",
+      });
+    }
+
+    return NextResponse.json(
+      { error: { message: "Workspace already exists.", workspaceExists: true, workspaceName: tenantName } },
+      { status: 409 }
+    );
+  }
+
   let slug = baseSlug;
   let attempts = 0;
   const maxAttempts = 10;
@@ -53,7 +89,7 @@ export async function POST(request: Request) {
 
   const tenantResult = await admin
     .from("tenants")
-    .insert({ name: parsed.data.organizationName, slug })
+    .insert({ name: parsed.data.organizationName.trim(), slug })
     .select("id")
     .single();
 
@@ -74,6 +110,12 @@ export async function POST(request: Request) {
   if (profileInsert.error) {
     return NextResponse.json({ error: { message: profileInsert.error.message } }, { status: 500 });
   }
+
+  await admin.from("workspace_members").insert({
+    user_id: user.id,
+    tenant_id: tenantId,
+    role: "admin",
+  });
 
   return NextResponse.json({ data: { initialized: true } }, { status: 201 });
 }

@@ -19,13 +19,16 @@ export function SignInForm({ canBootstrap, nextPath: nextPathProp }: { canBootst
       return;
     }
 
-    const nextPath = nextPathProp ?? searchParams.get("next") ?? "/";
+    const nextPath = nextPathProp ?? searchParams?.get("next") ?? "/";
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
 
     startTransition(async () => {
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo },
+        options: {
+          redirectTo,
+          queryParams: { prompt: "select_account" },
+        },
       });
 
       if (signInError) {

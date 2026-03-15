@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --background: #f8f9fb;
   --foreground: #0f1117;
   --surface: #ffffff;
@@ -62,8 +64,8 @@
   --color-warning-light: var(--warning-light);
   --color-danger: var(--danger);
   --color-danger-light: var(--danger-light);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 * {

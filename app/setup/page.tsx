@@ -15,13 +15,31 @@ type PageProps = {
 };
 
 export default async function SetupPage({ searchParams }: PageProps) {
-  const existingProfile = await getCurrentProfile();
-  if (existingProfile) {
-    redirect("/");
-  }
-
   const { invite: inviteToken } = await searchParams;
   const invite = inviteToken ? await getInviteByToken(inviteToken) : null;
+
+  const existingProfile = await getCurrentProfile();
+  if (existingProfile) {
+    if (invite) {
+      const alreadyInInvitedWorkspace =
+        existingProfile.tenantId === invite.tenantId ||
+        (await (async () => {
+          const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
+          const admin = createSupabaseAdminClient();
+          if (!admin) return false;
+          const { data } = await admin
+            .from("workspace_members")
+            .select("tenant_id")
+            .eq("user_id", existingProfile.id)
+            .eq("tenant_id", invite.tenantId)
+            .maybeSingle();
+          return !!data;
+        })());
+      if (alreadyInInvitedWorkspace) redirect("/");
+    } else {
+      redirect("/");
+    }
+  }
 
   const initialized = await hasAnyProfiles();
   const supabase = await createSupabaseServerClient();
@@ -57,6 +75,7 @@ export default async function SetupPage({ searchParams }: PageProps) {
                   user.email?.toLowerCase().trim() === invite.email ? (
                     <JoinOrgForm
                       token={inviteToken!}
+                      tenantId={invite.tenantId}
                       tenantName={invite.tenantName}
                       role={invite.role}
                     />
@@ -80,15 +99,15 @@ export default async function SetupPage({ searchParams }: PageProps) {
           ) : (
             <>
               <Badge tone="warning" className="mb-4">
-                {initialized ? "Create your organization" : "One-time setup"}
+                Create or join workspace
               </Badge>
               <h1 className="text-2xl font-bold text-foreground">
-                {initialized ? "Create your organization" : "Initialize workspace"}
+                {initialized ? "Create your workspace" : "Create your workspace"}
               </h1>
               <p className="mt-2 text-sm text-muted">
                 {initialized
-                  ? "Set up your own organization and become the admin. Or use an invite link to join an existing organization."
-                  : "Create the first admin account and organization for your underwriting platform."}
+                  ? "Enter a new workspace name to create one (you become admin), or an existing name to request access. Use an invite link to join directly."
+                  : "Create the first workspace and become the admin. Enter a workspace name to get started."}
               </p>
               <div className="mt-6">
                 {user ? (
