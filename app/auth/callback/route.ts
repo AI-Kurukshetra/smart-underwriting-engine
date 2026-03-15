@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -33,7 +33,8 @@ export async function GET(request: Request) {
 
   const profile = await admin.from("profiles").select("id").eq("id", user.id).maybeSingle();
   if (!profile.data) {
-    return NextResponse.redirect(`${origin}/setup`);
+    const setupPath = nextPath.startsWith("/setup") ? nextPath : "/setup";
+    return NextResponse.redirect(`${origin}${setupPath}`);
   }
 
   return NextResponse.redirect(`${origin}${nextPath}`);

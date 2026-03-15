@@ -34,30 +34,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { message: "Invalid setup payload." } }, { status: 400 });
   }
 
-  const existingProfiles = await admin.from("profiles").select("id", { head: true, count: "exact" });
-  if ((existingProfiles.count ?? 0) > 0) {
-    return NextResponse.json({ error: { message: "The platform is already initialized." } }, { status: 409 });
+  const existingProfile = await admin.from("profiles").select("id").eq("id", user.id).maybeSingle();
+  if (existingProfile.data) {
+    return NextResponse.json({ error: { message: "You already have an organization. Sign out and use a different account to create a new one." } }, { status: 409 });
   }
 
-  const existingTenant = await admin.from("tenants").select("id").eq("slug", "aegis-demo").maybeSingle();
-  let tenantId: string;
+  const baseSlug = slugify(parsed.data.organizationName) || "aegis-org";
+  let slug = baseSlug;
+  let attempts = 0;
+  const maxAttempts = 10;
 
-  if (existingTenant.data?.id) {
-    tenantId = existingTenant.data.id;
-    await admin.from("tenants").update({ name: parsed.data.organizationName }).eq("id", tenantId);
-  } else {
-    const tenantResult = await admin
-      .from("tenants")
-      .insert({ name: parsed.data.organizationName, slug: slugify(parsed.data.organizationName) || "aegis-org" })
-      .select("id")
-      .single();
-
-    if (tenantResult.error) {
-      return NextResponse.json({ error: { message: tenantResult.error.message } }, { status: 500 });
-    }
-
-    tenantId = tenantResult.data.id;
+  while (attempts < maxAttempts) {
+    const existingTenant = await admin.from("tenants").select("id").eq("slug", slug).maybeSingle();
+    if (!existingTenant.data) break;
+    slug = `${baseSlug}-${Math.random().toString(36).slice(2, 8)}`;
+    attempts++;
   }
+
+  const tenantResult = await admin
+    .from("tenants")
+    .insert({ name: parsed.data.organizationName, slug })
+    .select("id")
+    .single();
+
+  if (tenantResult.error) {
+    return NextResponse.json({ error: { message: tenantResult.error.message } }, { status: 500 });
+  }
+
+  const tenantId = tenantResult.data.id;
 
   const profileInsert = await admin.from("profiles").insert({
     id: user.id,

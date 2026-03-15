@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { hasPublicSupabaseEnv } from "@/lib/env";
 
@@ -47,9 +47,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && pathname === "/login") {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/";
-    return NextResponse.redirect(dashboardUrl);
+    const { data: profile } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
+    if (profile) {
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = "/";
+      return NextResponse.redirect(dashboardUrl);
+    }
   }
 
   return response;

@@ -39,7 +39,11 @@ const features = [
   },
 ];
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ next?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const profile = await getCurrentProfile();
   if (profile) {
     redirect("/");
@@ -52,7 +56,9 @@ export default async function LoginPage() {
   } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
 
   if (user) {
-    redirect("/setup");
+    const { next: nextPath } = await searchParams;
+    const setupPath = nextPath?.startsWith("/setup") ? nextPath : "/setup";
+    redirect(setupPath);
   }
 
   return (

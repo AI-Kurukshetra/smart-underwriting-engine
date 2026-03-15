@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Sliders,
   TestTubeDiagonal,
+  Users,
   Workflow,
 } from "lucide-react";
 import { AppProfile } from "@/lib/auth/session";
@@ -64,6 +65,7 @@ const navSections = [
   {
     label: "System",
     items: [
+      { href: "/team", label: "Team", icon: Users },
       { href: "/reports", label: "Reports", icon: FileSpreadsheet },
       { href: "/integrations", label: "Integrations", icon: PlugZap },
     ],

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-export function SignInForm({ canBootstrap }: { canBootstrap: boolean }) {
+export function SignInForm({ canBootstrap, nextPath: nextPathProp }: { canBootstrap: boolean; nextPath?: string }) {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -19,7 +19,7 @@ export function SignInForm({ canBootstrap }: { canBootstrap: boolean }) {
       return;
     }
 
-    const nextPath = searchParams.get("next") || "/";
+    const nextPath = nextPathProp ?? searchParams.get("next") ?? "/";
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
 
     startTransition(async () => {
